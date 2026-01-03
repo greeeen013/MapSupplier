@@ -88,8 +88,15 @@ main {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Search View */
@@ -101,10 +108,12 @@ main {
     padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid var(--border);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     background-color: #0d1117;
     border: 1px solid var(--border);
     color: var(--text-primary);
@@ -116,7 +125,8 @@ input, select, textarea {
     transition: border-color 0.3s;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
     border-color: var(--accent);
 }
 
@@ -124,7 +134,8 @@ input:focus, textarea:focus {
     flex: 1;
 }
 
-button.primary, button.action-btn {
+button.primary,
+button.action-btn {
     background-color: var(--accent);
     color: white;
     border: none;
@@ -170,7 +181,7 @@ button.success {
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     border-color: var(--accent);
 }
 
@@ -265,7 +276,8 @@ button.success {
     transition: background 0.2s;
 }
 
-.supplier-list-item:hover, .supplier-list-item.active {
+.supplier-list-item:hover,
+.supplier-list-item.active {
     background-color: rgba(88, 166, 255, 0.1);
 }
 
@@ -324,22 +336,52 @@ button.success {
     font-weight: 600;
 }
 
-.status-new { background: #1f6feb; color: white; }
-.status-accepted { background: #238636; color: white; }
-.status-rejected { background: #da3633; color: white; }
-.status-contacted { background: #a371f7; color: white; }
+.status-new {
+    background: #1f6feb;
+    color: white;
+}
+
+.status-accepted {
+    background: #238636;
+    color: white;
+}
+
+.status-rejected {
+    background: #da3633;
+    color: white;
+}
+
+.status-contacted {
+    background: #a371f7;
+    color: white;
+}
 
 /* Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
 }
+
 ::-webkit-scrollbar-track {
     background: #0d1117;
 }
+
 ::-webkit-scrollbar-thumb {
     background: #30363d;
     border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: #484f58;
+}
+
+.street-view-label {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    pointer-events: none;
 }

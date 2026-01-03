@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import EmailPreset, Supplier
 from ..schemas import EmailPresetCreate, EmailPresetResponse
-import google.generativeai as genai
+from google import genai
 import os
 import smtplib
 from email.mime.text import MIMEText
@@ -44,8 +44,7 @@ def generate_email(prompt: str = Body(..., embed=True), supplier_info: dict = Bo
              return {"generated_text": "Subject: Nabídka spolupráce\n\nDobrý den,\n\nNašel jsem vaši firmu..."}
         raise HTTPException(500, "Gemini API Key missing")
     
-    genai.configure(api_key=gemini_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    client = genai.Client(api_key=gemini_key)
     
     # Construct a rich prompt
     full_prompt = f"""
@@ -64,7 +63,10 @@ def generate_email(prompt: str = Body(..., embed=True), supplier_info: dict = Bo
     """
     
     try:
-        response = model.generate_content(full_prompt)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=full_prompt
+        )
         return {"generated_text": response.text}
     except Exception as e:
         raise HTTPException(500, detail=str(e))

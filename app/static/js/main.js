@@ -61,7 +61,9 @@ function renderSearchResults(results) {
     const container = document.getElementById('search-results');
     container.innerHTML = results.map(place => `
         <div class="card" id="card-${place.google_id}">
-             <div class="card-img" style="background-image: url('${place.images[0] || ''}')"></div>
+             <div class="card-img" style="background-image: url('${place.images[0] || ''}')">
+                 ${place.is_street_view ? '<span class="street-view-label">Street View</span>' : ''}
+             </div>
              <div class="card-content">
                  <h3>${place.name}</h3>
                  <div class="rating">★ ${place.rating || 'N/A'}</div>

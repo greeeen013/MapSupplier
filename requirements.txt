@@ -2,8 +2,9 @@ fastapi
 uvicorn
 sqlalchemy
 requests
-google-generativeai
+google-genai
 python-dotenv
 pydantic
 aiofiles
 jinja2
+beautifulsoup4

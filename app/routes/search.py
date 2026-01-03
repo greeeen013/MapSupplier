@@ -57,10 +57,19 @@ def search_places(query: str, location: str = "Czech_Republic", db: Session = De
             if status in ["rejected", "skipped_forever"]:
                 continue
         
+        location_coords = place.get("geometry", {}).get("location", {})
+        lat = location_coords.get("lat")
+        lng = location_coords.get("lng")
+        
         photo_ref = place.get("photos", [{}])[0].get("photo_reference")
         image_url = None
+        is_street_view = False
+        
         if photo_ref:
             image_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference={photo_ref}&key={GOOGLE_API_KEY}"
+        elif lat and lng:
+            image_url = f"https://maps.googleapis.com/maps/api/streetview?size=400x400&location={lat},{lng}&key={GOOGLE_API_KEY}"
+            is_street_view = True
             
         results.append({
             "google_id": google_id,
@@ -69,7 +78,8 @@ def search_places(query: str, location: str = "Czech_Republic", db: Session = De
             "address": place.get("formatted_address"),
             "images": [image_url] if image_url else [],
             "status": status,
-            "keyword_found": query # Pass back to frontend to save later
+            "keyword_found": query, # Pass back to frontend to save later
+            "is_street_view": is_street_view
         })
         
     return results
