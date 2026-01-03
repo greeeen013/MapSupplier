@@ -46,27 +46,66 @@ h1 {
     background: linear-gradient(90deg, #58a6ff, #8a2be2);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    width: 250px;
+    /* Fixed width to allow centering of nav */
+}
+
+nav {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
 }
 
 nav button {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 1.1rem;
+    /* Larger font */
     cursor: pointer;
-    padding: 0.5rem 1rem;
+    padding: 0.8rem 2rem;
+    /* Larger padding */
     transition: color 0.3s, background 0.3s;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.02);
 }
 
 nav button.active {
     color: var(--text-primary);
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(88, 166, 255, 0.15);
+    /* More visible active state */
+    border: 1px solid rgba(88, 166, 255, 0.3);
 }
 
 nav button:hover {
     color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.header-right {
+    width: 250px;
+    /* Match h1 width */
+    display: flex;
+    justify-content: flex-end;
+}
+
+.header-right button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.header-right button:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Main Layout */
@@ -383,5 +422,163 @@ button.success {
     padding: 2px 6px;
     font-size: 0.7rem;
     border-radius: 4px;
-    pointer-events: none;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 200;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    margin: 5% auto;
+    padding: 2rem;
+    border: 1px solid var(--border);
+    width: 80%;
+    max-width: 1000px;
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.editor-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.editor-row textarea {
+    flex: 1;
+}
+
+.ai-variables-panel {
+    width: 300px;
+    /* Increased width */
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    display: none;
+    font-size: 0.85rem;
+}
+
+.ai-variables-panel h4 {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.manage-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.tags-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.var-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.var-tag {
+    background: rgba(88, 166, 255, 0.15);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    color: var(--accent);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.var-tag:hover {
+    background: rgba(88, 166, 255, 0.25);
+}
+
+.var-desc {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.close {
+    color: var(--text-secondary);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: var(--text-primary);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.settings-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.settings-item {
+    padding: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.settings-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Tooltip */
+.info-tooltip {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: help;
+    font-size: 1.2rem;
+}
+
+.info-tooltip .tooltiptext {
+    visibility: hidden;
+    width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    right: 0;
+    font-size: 0.85rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+}
+
+.info-tooltip:hover .tooltiptext {
+    visibility: visible;
 }

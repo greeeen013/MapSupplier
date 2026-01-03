@@ -16,7 +16,6 @@ router = APIRouter()
 @router.get("/presets", response_model=list[EmailPresetResponse])
 def get_presets(db: Session = Depends(get_db)):
     return db.query(EmailPreset).all()
-
 @router.post("/presets", response_model=EmailPresetResponse)
 def create_preset(preset: EmailPresetCreate, db: Session = Depends(get_db)):
     db_preset = EmailPreset(**preset.dict())
@@ -32,8 +31,17 @@ def update_preset(id: int, preset: EmailPresetCreate, db: Session = Depends(get_
     db_preset.name = preset.name
     db_preset.subject = preset.subject
     db_preset.body = preset.body
+    db_preset.preset_type = preset.preset_type
     db.commit()
     return db_preset
+
+@router.delete("/presets/{id}")
+def delete_preset(id: int, db: Session = Depends(get_db)):
+    db_preset = db.query(EmailPreset).filter(EmailPreset.id == id).first()
+    if not db_preset: raise HTTPException(404, detail="Preset not found")
+    db.delete(db_preset)
+    db.commit()
+    return {"status": "deleted"}
 
 # Gemini Generation
 @router.post("/generate")

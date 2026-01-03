@@ -30,3 +30,4 @@ class EmailPreset(Base):
     name = Column(String, unique=True, index=True)
     subject = Column(String, default="")
     body = Column(Text, default="")
+    preset_type = Column(String, default="template") # 'template' or 'ai_prompt'

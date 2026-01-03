@@ -28,6 +28,7 @@ class EmailPresetCreate(BaseModel):
     name: str
     subject: str
     body: str
+    preset_type: str = "template"
 
 class EmailPresetResponse(EmailPresetCreate):
     id: int

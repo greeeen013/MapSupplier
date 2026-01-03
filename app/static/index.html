@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <header>
         <h1>Supplier Finder</h1>
@@ -14,6 +16,9 @@
             <button id="nav-search" class="active" onclick="switchView('search')">🔍 Hledání</button>
             <button id="nav-email" onclick="switchView('email')">📧 Emailing</button>
         </nav>
+        <div class="header-right">
+            <button onclick="openSettings()">⚙️ Nastavení</button>
+        </div>
     </header>
 
     <main>
@@ -29,7 +34,7 @@
                     </label>
                 </div>
             </div>
-            
+
             <div id="search-results" class="results-grid">
                 <!-- Cards will be injected here -->
             </div>
@@ -48,12 +53,94 @@
 
                 <!-- Main Content -->
                 <div class="details-panel" id="supplier-detail-panel">
-                    <p style="color: var(--text-secondary); text-align: center; margin-top: 5rem;">Vyberte dodavatele ze seznamu</p>
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 5rem;">Vyberte dodavatele ze
+                        seznamu</p>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSettings()">&times;</span>
+            <h2>Nastavení Presetů</h2>
+
+            <div class="tabs" style="margin-top: 1rem;">
+                <button class="tab-btn active" onclick="setSettingsTab('template')">Šablony</button>
+                <button class="tab-btn" onclick="setSettingsTab('ai_prompt')">AI Prompty</button>
+            </div>
+
+            <div id="settings-list" class="settings-list">
+                <!-- Items injected by JS -->
+            </div>
+
+            <button class="primary" onclick="createNewPreset()" style="width: 100%; margin-bottom: 1rem;">+ Nový
+                Preset</button>
+
+            <!-- Editor Section -->
+            <div id="preset-editor"
+                style="display: none; border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem;">
+                <h3>Editace</h3>
+                <input type="text" id="edit-name" placeholder="Název presetu"
+                    style="width: 100%; margin-bottom: 0.5rem;">
+                <input type="text" id="edit-subject" placeholder="Předmět e-mailu"
+                    style="width: 100%; margin-bottom: 0.5rem;">
+
+                <!-- New Layout -->
+                <div class="editor-row">
+                    <textarea id="edit-body" placeholder="Obsah..."
+                        style="min-height: 200px; resize: vertical; margin-bottom: 0;"></textarea>
+
+                    <div id="ai-variables-panel" class="ai-variables-panel">
+                        <h4>Proměnné</h4>
+                        <p class="manage-hint">
+                            Pokud v obsahu bude nějaká z těchto proměnných, tak při promptnutí AI se místo ní vloží
+                            konkrétní hodnota podniku.
+                        </p>
+                        <div class="tags-container">
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{name}')">{name}</button>
+                                <span class="var-desc">Název (např. Restaurace U Lípy)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{address}')">{address}</button>
+                                <span class="var-desc">Adresa (např. Dlouhá 5, Praha)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{rating}')">{rating}</button>
+                                <span class="var-desc">Hodnocení (např. 4.8)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{keyword}')">{keyword}</button>
+                                <span class="var-desc">Klíč. slovo (např. pizzerie)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{phone}')">{phone}</button>
+                                <span class="var-desc">Telefon (např. +420 123...)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{website}')">{website}</button>
+                                <span class="var-desc">Web (např. www.ulipy.cz)</span>
+                            </div>
+                            <div class="var-row">
+                                <button class="var-tag" onclick="insertPlaceholder('{email}')">{email}</button>
+                                <span class="var-desc">Email (např. info@ulipy.cz)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                    <button class="primary" onclick="savePreset()">Uložit</button>
+                    <button class="danger" onclick="deletePreset()">Smazat</button>
+                    <button class="action-btn" style="background:#444" onclick="cancelEdit()">Zrušit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/main.js"></script>
 </body>
+
 </html>
