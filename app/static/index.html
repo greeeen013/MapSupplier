@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Finder Premium</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Supplier Finder</h1>
+        <nav>
+            <button id="nav-search" class="active" onclick="switchView('search')">🔍 Hledání</button>
+            <button id="nav-email" onclick="switchView('email')">📧 Emailing</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Search View -->
+        <div id="view-search" class="view active">
+            <div class="search-bar">
+                <input type="text" id="keywords" placeholder="Klíčová slova (např. 'velkoobchod elektro')">
+                <input type="text" id="location" placeholder="Oblast (např. 'Czech Republic')" value="Czech Republic">
+                <button class="primary" onclick="searchPlaces()">Vyhledat</button>
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="color: var(--text-secondary); font-size: 0.9rem;">
+                        <input type="checkbox" id="auto-confirm"> Auto-Potvrdit
+                    </label>
+                </div>
+            </div>
+            
+            <div id="search-results" class="results-grid">
+                <!-- Cards will be injected here -->
+            </div>
+            <div id="search-loading" style="display: none; text-align: center; margin-top: 2rem;">
+                Nahrávám...
+            </div>
+        </div>
+
+        <!-- Email View -->
+        <div id="view-email" class="view">
+            <div class="split-view">
+                <!-- Sidebar List -->
+                <div class="sidebar" id="supplier-list">
+                    <!-- List items injected here -->
+                </div>
+
+                <!-- Main Content -->
+                <div class="details-panel" id="supplier-detail-panel">
+                    <p style="color: var(--text-secondary); text-align: center; margin-top: 5rem;">Vyberte dodavatele ze seznamu</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

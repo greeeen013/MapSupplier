@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+requests
+google-generativeai
+python-dotenv
+pydantic
+aiofiles
+jinja2
