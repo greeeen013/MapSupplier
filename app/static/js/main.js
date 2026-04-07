@@ -366,13 +366,23 @@ function renderSupplierList() {
             s.tags.some(t => t.toUpperCase() === activeTagFilter)
         );
     }
-    list.innerHTML = filtered.map(s => `
+    list.innerHTML = filtered.map(s => {
+        let tagsHtml = '';
+        if (Array.isArray(s.tags) && s.tags.length > 0) {
+            tagsHtml = s.tags.map(t => `<span>${t}</span>`).join('');
+        } else {
+            tagsHtml = `<span>${s.keyword || 'N/A'}</span>`;
+        }
+        return `
         <div class="supplier-list-item" onclick="selectSupplier(${s.id})">
             <h4>${s.name}</h4>
-            <span>${s.keyword || 'N/A'}</span>
-            ${s.status === 'contacted' ? '✅' : ''}
+            <div style="margin-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;">
+                ${tagsHtml}
+                ${s.status === 'contacted' ? '<div style="margin-left: auto;">✅</div>' : ''}
+            </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 async function selectSupplier(id) {
