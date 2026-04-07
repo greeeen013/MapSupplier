@@ -13,6 +13,7 @@ class SupplierBase(BaseModel):
     images: Optional[List[str]] = None
     reviews_count: Optional[int] = None
     description: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 class SupplierCreate(SupplierBase):
     status: str = "accepted" # accepted or rejected

@@ -19,6 +19,8 @@ class Supplier(Base):
     description = Column(Text, nullable=True)
     rejection_reason = Column(Text, nullable=True)
     
+    tags = Column(JSON, nullable=True) # E.g. ["AI search", keyword, country]
+
     status = Column(String, default="pending") # pending, accepted, rejected, contacted, skipped_forever
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
