@@ -83,7 +83,8 @@ def search_places(query: str, location: str = "Czech_Republic", db: Session = De
             "images": [image_url] if image_url else [],
             "status": status,
             "keyword_found": query, # Pass back to frontend to save later
-            "is_street_view": is_street_view
+            "is_street_view": is_street_view,
+            "country": location
         })
         
     return results
@@ -251,7 +252,8 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                 "status": status,
                 "keyword_found": query,
                 "is_street_view": False,
-                "tags": ["AI SEARCH", query.upper(), location.upper()]
+                "tags": ["AI SEARCH", query.upper(), location.upper()],
+                "country": location
             })
             
         return results

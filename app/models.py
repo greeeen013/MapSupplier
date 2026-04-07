@@ -20,6 +20,7 @@ class Supplier(Base):
     rejection_reason = Column(Text, nullable=True)
     
     tags = Column(JSON, nullable=True) # E.g. ["AI search", keyword, country]
+    country = Column(String, nullable=True)
 
     status = Column(String, default="pending") # pending, accepted, rejected, contacted, skipped_forever
     

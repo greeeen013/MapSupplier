@@ -430,6 +430,9 @@ function renderSupplierList() {
         return `
         <div class="supplier-list-item" onclick="selectSupplier(${s.id})">
             <h4>${s.name}</h4>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                ${s.country ? `Země: ${s.country}` : ''}
+            </div>
             <div style="margin-top: 0.3rem; display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;">
                 ${tagsHtml}
                 ${s.status === 'contacted' ? '<div style="margin-left: auto;">✅</div>' : ''}
@@ -460,7 +463,8 @@ async function selectSupplier(id) {
             </div>
             <div>
                 <strong>Rating:</strong> ${currentSupplier.rating} <br>
-                <strong>Adresa:</strong> ${currentSupplier.address}
+                <strong>Adresa:</strong> ${currentSupplier.address} <br>
+                <strong>Země:</strong> ${currentSupplier.country || 'Neklasifikováno'}
             </div>
         </div>
         
