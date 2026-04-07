@@ -2,6 +2,7 @@ const API_BASE = '/api';
 
 // State
 let currentSearchresults = [];
+let currentAISearchresults = [];
 let suppliers = [];
 let currentSupplier = null;
 let presets = [];
@@ -13,6 +14,12 @@ let editingPresetId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadPresets();
     loadSuppliers();
+
+    // Setup tooltip
+    const tooltipIcon = document.getElementById('ai-prompt-tooltip');
+    if (tooltipIcon) {
+        tooltipIcon.addEventListener('mouseenter', updateAIPromptTooltip);
+    }
 });
 
 // Navigation
@@ -60,6 +67,47 @@ async function searchPlaces() {
     }
 }
 
+async function searchAIPlaces() {
+    const query = document.getElementById('ai-keywords').value;
+    const location = document.getElementById('ai-location').value;
+
+    if (!query) return alert('Zadejte klíčová slova');
+
+    const resultsContainer = document.getElementById('ai-search-results');
+    resultsContainer.innerHTML = '';
+    document.getElementById('ai-search-loading').style.display = 'block';
+
+    try {
+        const response = await fetch(`${API_BASE}/search/ai_places?query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`);
+        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
+
+        currentAISearchresults = data;
+        renderAISearchResults(data);
+
+    } catch (err) {
+        alert('Chyba AI hledání: ' + err.message);
+    } finally {
+        document.getElementById('ai-search-loading').style.display = 'none';
+    }
+}
+
+async function updateAIPromptTooltip() {
+    const q = document.getElementById('ai-keywords').value || "Tvé slovo";
+    const loc = document.getElementById('ai-location').value || "Tvá oblast";
+    const disp = document.getElementById('ai-prompt-text-display');
+    if (!disp) return;
+    
+    disp.innerText = "Načítám prompt...";
+    try {
+        const res = await fetch(`${API_BASE}/search/ai_prompt_text?query=${encodeURIComponent(q)}&location=${encodeURIComponent(loc)}`);
+        const data = await res.json();
+        disp.innerText = data.prompt;
+    } catch(e) {
+        disp.innerText = 'Nelze načíst prompt.';
+    }
+}
+
 function renderSearchResults(results) {
     const container = document.getElementById('search-results');
     container.innerHTML = results.map(place => `
@@ -81,13 +129,115 @@ function renderSearchResults(results) {
     `).join('');
 }
 
+function renderAISearchResults(results) {
+    const container = document.getElementById('ai-search-results');
+    container.innerHTML = results.map(place => {
+        let emailHtml = `<p><strong>Email:</strong> Nenalezen</p>`;
+        
+        if (place.emails_rich && place.emails_rich.length > 0) {
+            const isVerified = place.emails_rich[0].verified;
+            const icon = isVerified ? '✅' : '🔴';
+            const tooltipText = isVerified 
+                ? 'Ověřeno přes web-scraper' 
+                : 'Neověřeno (pouze AI)';
+            const colorClass = isVerified ? 'green' : 'red';
+            const editPencil = !isVerified ? `<span id="pencil-${place.google_id}" style="cursor: pointer; margin-left: 5px;" onclick="editEmailDropdown('${place.google_id}')">✏️</span>` : '';
+
+            if (place.emails_rich.length > 1) {
+                emailHtml = `
+                <div style="margin: 0.5rem 0;" id="email-container-${place.google_id}">
+                    <div style="margin-bottom: 0.3rem;">
+                        <strong>Emaily:</strong> ${icon} <span style="font-size: 0.8rem; font-style: italic; color: var(--text-secondary);">${tooltipText}</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <select id="email-select-${place.google_id}" style="width: 150px; font-size:0.9rem; padding: 2px;">
+                            ${place.emails_rich.map(e => `<option value="${e.address}">${e.address}</option>`).join('')}
+                        </select>
+                        ${editPencil}
+                    </div>
+                </div>`;
+            } else {
+                emailHtml = `
+                <div style="margin: 0.5rem 0;" id="email-container-${place.google_id}">
+                    <div style="margin-bottom: 0.3rem;">
+                        <strong>Email:</strong> <span style="font-size: 0.8rem; font-style: italic; color: var(--text-secondary);">${tooltipText}</span>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <span id="email-select-${place.google_id}" data-val="${place.emails_rich[0].address}" style="color: ${colorClass}; font-weight: bold;">${place.emails_rich[0].address}</span>
+                        ${editPencil}
+                    </div>
+                </div>`;
+            }
+        }
+
+        return `
+        <div class="card" id="card-${place.google_id}">
+             <div class="card-content">
+                 <h3>${place.name}</h3>
+                 ${emailHtml}
+                 <p><strong>Tel:</strong> ${place.phone || 'N/A'}</p>
+                 <p><strong>Adresa:</strong> ${place.address || 'N/A'}</p>
+                 <p><strong>Web:</strong> ${place.website ? `<a href="${place.website}" target="_blank">Odkaz</a>` : 'N/A'}</p>
+                 <span class="status-badge status-${place.status}">${place.status}</span>
+             </div>
+             <div class="card-actions">
+                 <button class="btn-approve" onclick="approveSupplier('${place.google_id}')">Potvrdit</button>
+                 <button class="btn-reject" onclick="rejectSupplier('${place.google_id}')">Zamítnout</button>
+             </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function editEmailDropdown(googleId) {
+    const el = document.getElementById(`email-select-${googleId}`);
+    if (!el) return;
+    
+    let currentVal = el.tagName === 'SELECT' ? el.value : (el.getAttribute('data-val') || el.innerText);
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = `email-input-${googleId}`;
+    input.value = currentVal;
+    input.style.width = '150px';
+    input.style.fontSize = '0.9rem';
+    input.style.padding = '2px';
+    
+    el.parentNode.replaceChild(input, el);
+    
+    const pencil = document.getElementById(`pencil-${googleId}`);
+    if (pencil) pencil.remove();
+}
+
+// Orphan functions removed
+
 async function approveSupplier(googleId) {
-    const place = currentSearchresults.find(p => p.google_id === googleId);
+    let place = currentSearchresults.find(p => p.google_id === googleId);
+    let isAI = false;
+    if (!place) {
+        place = currentAISearchresults.find(p => p.google_id === googleId);
+        isAI = !!place;
+    }
     if (!place) return;
+
+    let selectedEmail = place.email; // Fallback
+    const inputEl = document.getElementById(`email-input-${googleId}`);
+    const selectEl = document.getElementById(`email-select-${googleId}`);
+    
+    if (inputEl) {
+        selectedEmail = inputEl.value;
+    } else if (selectEl) {
+        if (selectEl.tagName === 'SELECT') {
+            selectedEmail = selectEl.value;
+        } else {
+            selectedEmail = selectEl.getAttribute('data-val') || selectEl.innerText;
+        }
+    }
 
     const payload = {
         ...place,
-        keyword: document.getElementById('keywords').value,
+        email: selectedEmail,
+        keyword: isAI ? document.getElementById('ai-keywords').value : document.getElementById('keywords').value,
         status: 'accepted'
     };
 
@@ -107,12 +257,17 @@ async function approveSupplier(googleId) {
 }
 
 async function rejectSupplier(googleId) {
-    const place = currentSearchresults.find(p => p.google_id === googleId);
+    let place = currentSearchresults.find(p => p.google_id === googleId);
+    let isAI = false;
+    if (!place) {
+        place = currentAISearchresults.find(p => p.google_id === googleId);
+        isAI = !!place;
+    }
     if (!place) return;
 
     const payload = {
         ...place,
-        keyword: document.getElementById('keywords').value,
+        keyword: isAI ? document.getElementById('ai-keywords').value : document.getElementById('keywords').value,
         status: 'rejected'
     };
 
@@ -136,8 +291,10 @@ function updateCardStatus(googleId, status) {
     const card = document.getElementById(`card-${googleId}`);
     if (card) {
         const badge = card.querySelector('.status-badge');
-        badge.className = `status-badge status-${status}`;
-        badge.innerText = status;
+        if (badge) {
+            badge.className = `status-badge status-${status}`;
+            badge.innerText = status;
+        }
     }
 }
 

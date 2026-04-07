@@ -13,7 +13,9 @@
     <header>
         <h1>Supplier Finder</h1>
         <nav>
-            <button id="nav-search" class="active" onclick="switchView('search')">🔍 Hledání</button>
+            <button id="nav-search" class="active" onclick="switchView('search')">🔍 Google Maps search</button>
+            <button id="nav-ai-search" onclick="switchView('ai-search')">🤖 AI search</button>
+            <button id="nav-web-search" onclick="switchView('web-search')">🌐 Web search</button>
             <button id="nav-email" onclick="switchView('email')">📧 Emailing</button>
         </nav>
         <div class="header-right">
@@ -40,6 +42,32 @@
             </div>
             <div id="search-loading" style="display: none; text-align: center; margin-top: 2rem;">
                 Nahrávám...
+            </div>
+        </div>
+
+        <!-- AI Search View -->
+        <div id="view-ai-search" class="view">
+            <div class="search-bar" style="position: relative;">
+                <input type="text" id="ai-keywords" placeholder="Klíčová slova (např. 'autobaterie')">
+                <input type="text" id="ai-location" placeholder="Oblast (např. 'Polsko')" value="Polsko">
+                <button class="primary" onclick="searchAIPlaces()">Vyhledat AI</button>
+                <div class="info-tooltip" id="ai-prompt-tooltip">
+                    <span style="cursor:help; font-size: 1.2rem; background: #333; border-radius: 50%; padding: 0 4px; display:inline-block;">❓</span>
+                    <span class="tooltiptext" id="ai-prompt-text-display" style="width: 400px; white-space: pre-wrap; font-size: 0.8rem;">Načítám prompt...</span>
+                </div>
+            </div>
+            <div id="ai-search-results" class="results-grid">
+                <!-- AI Cards will be injected here -->
+            </div>
+            <div id="ai-search-loading" style="display: none; text-align: center; margin-top: 2rem;">
+                Nahrávám výsledky přes AI (může chvíli trvat)...
+            </div>
+        </div>
+
+        <!-- Web Search View -->
+        <div id="view-web-search" class="view">
+            <div style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">
+                Funkce Web Search zatím není k dispozici.
             </div>
         </div>
 
