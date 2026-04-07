@@ -7,6 +7,7 @@ let suppliers = [];
 let currentSupplier = null;
 let presets = [];
 let activeTagFilter = null;
+let activeCustomFilterId = null;
 
 let currentSettingsTab = 'template';
 let editingPresetId = null;
@@ -353,6 +354,46 @@ function renderTagFilter() {
 
 function setTagFilter(tag) {
     activeTagFilter = tag;
+    activeCustomFilterId = null; // Clear custom filter
+    renderCustomFilters();
+    renderTagFilter();
+    renderSupplierList();
+}
+
+function renderCustomFilters() {
+    const bar = document.getElementById('custom-filter-bar');
+    if (!bar) return;
+
+    const filters = presets.filter(p => p.preset_type === 'custom_filter');
+    if (filters.length === 0) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+    }
+
+    bar.style.display = 'flex';
+    bar.style.padding = '0.6rem';
+    bar.style.gap = '0.4rem';
+    bar.style.flexWrap = 'wrap';
+    bar.style.borderBottom = '1px solid var(--border)';
+    bar.style.backgroundColor = 'rgba(88, 166, 255, 0.05)';
+
+    const chips = filters.map(f => {
+        const isActive = activeCustomFilterId === f.id;
+        return `<button class="tag-chip${isActive ? ' active' : ''}" style="border-color: #a371f7; color: ${isActive ? 'white' : '#a371f7'}; background: ${isActive ? '#a371f7' : 'transparent'};" onclick="setCustomFilter(${f.id})">${f.name}</button>`;
+    }).join('');
+
+    bar.innerHTML = `<span style="font-size:0.8rem; color:var(--text-secondary); margin-right:5px; align-self:center;">Vlastní filtry:</span>` + chips;
+}
+
+function setCustomFilter(id) {
+    if (activeCustomFilterId === id) {
+        activeCustomFilterId = null; // Toggle off
+    } else {
+        activeCustomFilterId = id;
+        activeTagFilter = null; // Clear normal tag filter
+    }
+    renderCustomFilters();
     renderTagFilter();
     renderSupplierList();
 }
@@ -360,7 +401,17 @@ function setTagFilter(tag) {
 function renderSupplierList() {
     const list = document.getElementById('supplier-list');
     let filtered = suppliers;
-    if (activeTagFilter) {
+    if (activeCustomFilterId) {
+        const filterPreset = presets.find(p => p.id === activeCustomFilterId);
+        if (filterPreset && filterPreset.body) {
+            const requiredTags = filterPreset.body.split(',').map(tag => tag.trim().toUpperCase()).filter(Boolean);
+            filtered = suppliers.filter(s => {
+                if (!Array.isArray(s.tags)) return false;
+                const suppTags = s.tags.map(t => t.toUpperCase());
+                return requiredTags.every(req => suppTags.includes(req));
+            });
+        }
+    } else if (activeTagFilter) {
         filtered = suppliers.filter(s =>
             Array.isArray(s.tags) &&
             s.tags.some(t => t.toUpperCase() === activeTagFilter)
@@ -504,6 +555,7 @@ async function loadPresets() {
     try {
         const res = await fetch(`${API_BASE}/email/presets`);
         presets = await res.json();
+        renderCustomFilters();
     } catch (e) { console.error(e); }
 }
 
@@ -661,15 +713,22 @@ function closeSettings() {
 function setSettingsTab(type) {
     currentSettingsTab = type;
     document.querySelectorAll('#settings-modal .tab-btn').forEach(b => b.classList.remove('active'));
-    // Simple toggle logic based on text content or index? using onclick mapping
+    document.querySelector(`#settings-modal button[onclick="setSettingsTab('${type}')"]`).classList.add('active');
+    
     if (type === 'template') {
-        document.querySelector('#settings-modal button[onclick="setSettingsTab(\'template\')"]').classList.add('active');
+        document.getElementById('edit-subject').style.display = 'block';
         document.getElementById('edit-subject').placeholder = "Předmět e-mailu";
         document.getElementById('ai-variables-panel').style.display = 'none';
-    } else {
-        document.querySelector('#settings-modal button[onclick="setSettingsTab(\'ai_prompt\')"]').classList.add('active');
+        document.getElementById('edit-body').placeholder = "Obsah...";
+    } else if (type === 'ai_prompt') {
+        document.getElementById('edit-subject').style.display = 'block';
         document.getElementById('edit-subject').placeholder = "Poznámka / Popis";
         document.getElementById('ai-variables-panel').style.display = 'block';
+        document.getElementById('edit-body').placeholder = "Obsah...";
+    } else if (type === 'custom_filter') {
+        document.getElementById('edit-subject').style.display = 'none'; // nepotřebujeme předmět
+        document.getElementById('ai-variables-panel').style.display = 'none';
+        document.getElementById('edit-body').placeholder = "Tagy oddělené čárkou (např. AI SEARCH, PNEU, POLSKO)";
     }
 
     renderSettingsList();
@@ -680,7 +739,7 @@ function renderSettingsList() {
     const list = document.getElementById('settings-list');
     const filtered = presets.filter(p => {
         if (currentSettingsTab === 'template') return !p.preset_type || p.preset_type === 'template';
-        return p.preset_type === 'ai_prompt';
+        return p.preset_type === currentSettingsTab;
     });
 
     list.innerHTML = filtered.map(p => `
@@ -753,6 +812,7 @@ async function savePreset() {
         const updated = await fetch(`${API_BASE}/email/presets`).then(r => r.json());
         presets = updated;
         renderSettingsList();
+        renderCustomFilters();
         cancelEdit();
 
     } catch (e) {
@@ -769,6 +829,7 @@ async function deletePreset() {
         const updated = await fetch(`${API_BASE}/email/presets`).then(r => r.json());
         presets = updated;
         renderSettingsList();
+        renderCustomFilters();
         cancelEdit();
     } catch (e) {
         alert('Chyba mazání');
