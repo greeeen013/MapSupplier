@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routes import search, suppliers, email
+from .routes import search, suppliers, email, scraper, debug
 import uvicorn
 
 # Create tables
@@ -23,6 +23,8 @@ app.add_middleware(
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 app.include_router(suppliers.router, prefix="/api/suppliers", tags=["suppliers"])
 app.include_router(email.router, prefix="/api/email", tags=["email"])
+app.include_router(scraper.router, prefix="/api/scraper", tags=["scraper"])
+app.include_router(debug.router, prefix="/api/debug", tags=["debug"])
 
 # Static files for Frontend
 app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
