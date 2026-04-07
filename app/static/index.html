@@ -123,7 +123,17 @@
                 <!-- New Layout -->
                 <div class="editor-row">
                     <textarea id="edit-body" placeholder="Obsah..."
-                        style="min-height: 200px; resize: vertical; margin-bottom: 0;"></textarea>
+                        style="min-height: 200px; resize: vertical; margin-bottom: 0; width: 100%;"></textarea>
+
+                    <div id="custom-filter-tags-editor" style="display: none; flex: 1; flex-direction: column; position: relative;">
+                        <div style="border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px; background: #0d1117; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; min-height: 48px;">
+                            <div id="selected-tags-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
+                            <input type="text" id="tag-search-input" placeholder="Vyhledat tag ze seznamu..." style="flex: 1; border: none; background: transparent; padding: 0; min-width: 150px; outline: none; margin-left: 0.5rem;" oninput="onTagSearchInput()" onfocus="onTagSearchInput()">
+                        </div>
+                        <div id="tag-dropdown" style="display: none; position: absolute; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; z-index: 1000; margin-top: 50px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                            <!-- Dropdown items injected here -->
+                        </div>
+                    </div>
 
                     <div id="ai-variables-panel" class="ai-variables-panel">
                         <h4>Proměnné</h4>

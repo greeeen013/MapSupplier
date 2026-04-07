@@ -10,6 +10,8 @@ let activeTagFilter = null;
 let activeCustomFilterId = null;
 
 let currentSettingsTab = 'template';
+let currentEditingTags = [];
+window.allKnownTags = [];
 let editingPresetId = null;
 
 // Init
@@ -334,9 +336,10 @@ function renderTagFilter() {
     const allTags = new Set();
     suppliers.forEach(s => {
         if (Array.isArray(s.tags)) {
-            s.tags.forEach(t => allTags.add(t.toUpperCase()));
+            s.tags.forEach(t => allTags.add(t.toUpperCase().trim()));
         }
     });
+    window.allKnownTags = Array.from(allTags).filter(Boolean).sort();
 
     if (allTags.size === 0) {
         bar.innerHTML = '';
@@ -728,7 +731,15 @@ function setSettingsTab(type) {
     } else if (type === 'custom_filter') {
         document.getElementById('edit-subject').style.display = 'none'; // nepotřebujeme předmět
         document.getElementById('ai-variables-panel').style.display = 'none';
-        document.getElementById('edit-body').placeholder = "Tagy oddělené čárkou (např. AI SEARCH, PNEU, POLSKO)";
+        document.getElementById('edit-body').style.display = 'none';
+        document.getElementById('custom-filter-tags-editor').style.display = 'flex';
+        renderSelectedTagsEditor();
+    }
+
+    // Pro ostatní taby (template/ai_prompt) musíme zajistit zobrazení textarey
+    if (type !== 'custom_filter') {
+        document.getElementById('edit-body').style.display = 'block';
+        document.getElementById('custom-filter-tags-editor').style.display = 'none';
     }
 
     renderSettingsList();
@@ -756,6 +767,8 @@ function createNewPreset() {
     document.getElementById('edit-name').value = '';
     document.getElementById('edit-subject').value = '';
     document.getElementById('edit-body').value = '';
+    currentEditingTags = [];
+    if (currentSettingsTab === 'custom_filter') renderSelectedTagsEditor();
 }
 
 function editPreset(id) {
@@ -767,6 +780,11 @@ function editPreset(id) {
     document.getElementById('edit-name').value = preset.name;
     document.getElementById('edit-subject').value = preset.subject;
     document.getElementById('edit-body').value = preset.body;
+    
+    if (preset.preset_type === 'custom_filter') {
+        currentEditingTags = preset.body ? preset.body.split(',').map(t => t.trim().toUpperCase()).filter(Boolean) : [];
+        renderSelectedTagsEditor();
+    }
 }
 
 function cancelEdit() {
@@ -836,12 +854,66 @@ async function deletePreset() {
     }
 }
 
-// Window click to close modal
+// Window click to close modal and dropdown
 window.onclick = function (event) {
     const modal = document.getElementById('settings-modal');
     if (event.target == modal) {
         closeSettings();
     }
+    const tagsEditor = document.getElementById('custom-filter-tags-editor');
+    const dropdown = document.getElementById('tag-dropdown');
+    if (tagsEditor && dropdown && !tagsEditor.contains(event.target)) {
+        dropdown.style.display = 'none';
+    }
+}
+
+function renderSelectedTagsEditor() {
+    const container = document.getElementById('selected-tags-container');
+    if (!container) return;
+    container.innerHTML = currentEditingTags.map(t => `
+        <span class="tag-chip active" style="display:flex; align-items:center; gap:0.3rem;">
+            ${t}
+            <span style="cursor:pointer; font-weight:bold; margin-left:2px;" onclick="removeTagFromEditor('${t}')">&times;</span>
+        </span>
+    `).join('');
+    
+    document.getElementById('edit-body').value = currentEditingTags.join(',');
+}
+
+function removeTagFromEditor(tagToRemove) {
+    currentEditingTags = currentEditingTags.filter(t => t !== tagToRemove);
+    renderSelectedTagsEditor();
+}
+
+function onTagSearchInput() {
+    const input = document.getElementById('tag-search-input');
+    const q = input.value.toUpperCase();
+    const dropdown = document.getElementById('tag-dropdown');
+    
+    const available = (window.allKnownTags || []).filter(t => !currentEditingTags.includes(t));
+    const matches = available.filter(t => t.includes(q));
+    
+    if (matches.length > 0) {
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = matches.map(t => `
+            <div class="supplier-list-item" style="padding: 0.5rem; cursor: pointer; border-bottom: 1px solid var(--border);" onclick="addTagToEditor('${t}')">
+                ${t}
+            </div>
+        `).join('');
+    } else {
+        dropdown.style.display = 'none';
+        dropdown.innerHTML = '';
+    }
+}
+
+function addTagToEditor(t) {
+    if (!currentEditingTags.includes(t)) {
+        currentEditingTags.push(t);
+        renderSelectedTagsEditor();
+    }
+    document.getElementById('tag-search-input').value = '';
+    document.getElementById('tag-dropdown').style.display = 'none';
+    document.getElementById('tag-search-input').focus();
 }
 
 function insertPlaceholder(placeholder) {
