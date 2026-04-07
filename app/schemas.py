@@ -15,6 +15,7 @@ class SupplierBase(BaseModel):
     description: Optional[str] = None
     tags: Optional[List[str]] = None
     country: Optional[str] = None
+    source: Optional[str] = None  # 'AI SEARCH', 'GOOGLE MAPS', etc.
 
 class SupplierCreate(SupplierBase):
     status: str = "accepted" # accepted or rejected

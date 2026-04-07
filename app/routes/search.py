@@ -82,9 +82,11 @@ def search_places(query: str, location: str = "Czech_Republic", db: Session = De
             "address": place.get("formatted_address"),
             "images": [image_url] if image_url else [],
             "status": status,
-            "keyword_found": query, # Pass back to frontend to save later
+            "keyword_found": query,
             "is_street_view": is_street_view,
-            "country": location
+            "country": location,
+            "source": "GOOGLE MAPS",
+            "tags": ["GOOGLE MAPS", query.upper(), location.upper()]
         })
         
     return results
@@ -243,7 +245,7 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
             results.append({
                 "google_id": pseudo_id,
                 "name": company_name or "Neznámý název",
-                "emails_rich": final_emails_list, # New structure for frontend
+                "emails_rich": final_emails_list,
                 "address": resolved_address,
                 "phone": resolved_phone,
                 "website": resolved_website,
@@ -252,8 +254,9 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                 "status": status,
                 "keyword_found": query,
                 "is_street_view": False,
-                "tags": ["AI SEARCH", query.upper(), location.upper()],
-                "country": location
+                "country": location,
+                "source": "AI SEARCH",
+                "tags": ["AI SEARCH", query.upper(), location.upper()]
             })
             
         return results
