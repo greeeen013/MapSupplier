@@ -287,11 +287,58 @@ button.success {
     height: calc(100vh - 150px);
 }
 
-.sidebar {
+.sidebar-column {
     width: 350px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 12px;
+    overflow: hidden;
+}
+
+#tag-filter-bar {
+    padding: 0.6rem;
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+}
+
+#tag-filter-bar:empty {
+    display: none;
+}
+
+.tag-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.2rem 0.6rem;
+    font-size: 0.78rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+
+.tag-chip:hover {
+    background: rgba(88, 166, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.tag-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.sidebar {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;

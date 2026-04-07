@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import EmailPreset, Supplier
 from ..schemas import EmailPresetCreate, EmailPresetResponse
-from google import genai
+from ..gemini_client import generate_content as gemini_generate
 import os
 import smtplib
 from email.mime.text import MIMEText
@@ -52,30 +52,25 @@ def generate_email(prompt: str = Body(..., embed=True), supplier_info: dict = Bo
              return {"generated_text": "Subject: Nabídka spolupráce\n\nDobrý den,\n\nNašel jsem vaši firmu..."}
         raise HTTPException(500, "Gemini API Key missing")
     
-    client = genai.Client(api_key=gemini_key)
-    
     # Construct a rich prompt
     full_prompt = f"""
     Jsi asistent pro nákupčího e-shopu. Tvým úkolem je napsat profesionální email dodavateli.
-    
+
     Uživatelský pokyn: {prompt}
-    
+
     Informace o dodavateli:
     Název: {supplier_info.get('name')}
     Klíčové slovo hledání: {supplier_info.get('keyword')}
     Popis: {supplier_info.get('description', 'N/A')}
     Web: {supplier_info.get('website', 'N/A')}
-    
+
     Email by měl být v češtině. Musí být zdvořilý a přesvědčivý.
     Prosím vygeneruj POUZE text emailu, včetně předmětu na prvním řádku ve formátu "Předmět: ...".
     """
-    
+
     try:
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=full_prompt
-        )
-        return {"generated_text": response.text}
+        generated_text = gemini_generate(gemini_key, full_prompt, primary_model="gemini-1.5-flash")
+        return {"generated_text": generated_text}
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 

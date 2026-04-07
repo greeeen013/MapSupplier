@@ -6,6 +6,7 @@ let currentAISearchresults = [];
 let suppliers = [];
 let currentSupplier = null;
 let presets = [];
+let activeTagFilter = null;
 
 let currentSettingsTab = 'template';
 let editingPresetId = null;
@@ -241,6 +242,14 @@ async function approveSupplier(googleId) {
         status: 'accepted'
     };
 
+    if (isAI) {
+        const query = document.getElementById('ai-keywords').value;
+        const location = document.getElementById('ai-location').value;
+        payload.tags = [query, location, 'AI SEARCH']
+            .filter(Boolean)
+            .map(t => t.toUpperCase());
+    }
+
     try {
         const res = await fetch(`${API_BASE}/suppliers/`, {
             method: 'POST',
@@ -313,12 +322,51 @@ async function autoConfirmAll(results) {
 async function loadSuppliers() {
     const res = await fetch(`${API_BASE}/suppliers/?status=accepted`);
     suppliers = await res.json();
+    renderTagFilter();
+    renderSupplierList();
+}
+
+function renderTagFilter() {
+    const bar = document.getElementById('tag-filter-bar');
+    if (!bar) return;
+
+    const allTags = new Set();
+    suppliers.forEach(s => {
+        if (Array.isArray(s.tags)) {
+            s.tags.forEach(t => allTags.add(t.toUpperCase()));
+        }
+    });
+
+    if (allTags.size === 0) {
+        bar.innerHTML = '';
+        return;
+    }
+
+    const chips = ['VŠE', ...allTags].map(tag => {
+        const isActive = tag === 'VŠE' ? !activeTagFilter : activeTagFilter === tag;
+        const onclick = tag === 'VŠE' ? 'setTagFilter(null)' : `setTagFilter('${tag.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')`;
+        return `<button class="tag-chip${isActive ? ' active' : ''}" onclick="${onclick}">${tag}</button>`;
+    }).join('');
+
+    bar.innerHTML = chips;
+}
+
+function setTagFilter(tag) {
+    activeTagFilter = tag;
+    renderTagFilter();
     renderSupplierList();
 }
 
 function renderSupplierList() {
     const list = document.getElementById('supplier-list');
-    list.innerHTML = suppliers.map(s => `
+    let filtered = suppliers;
+    if (activeTagFilter) {
+        filtered = suppliers.filter(s =>
+            Array.isArray(s.tags) &&
+            s.tags.some(t => t.toUpperCase() === activeTagFilter)
+        );
+    }
+    list.innerHTML = filtered.map(s => `
         <div class="supplier-list-item" onclick="selectSupplier(${s.id})">
             <h4>${s.name}</h4>
             <span>${s.keyword || 'N/A'}</span>

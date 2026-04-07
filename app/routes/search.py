@@ -4,6 +4,7 @@ from ..database import get_db
 from ..models import Supplier
 from ..scraper import advanced_scrape_emails
 from ..logger import log
+from ..gemini_client import generate_content as gemini_generate
 import requests
 import os
 import json
@@ -129,21 +130,7 @@ def ai_raw_response(query: str, location: str = "Czech_Republic"):
     log.info(f"AI RAW Debug spuštěn pro query: {query}, loc: {location}")
     
     try:
-        try:
-            from google import genai
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            response = client.models.generate_content(
-                model='gemini-2.5-pro',
-                contents=prompt,
-            )
-            raw_text = response.text
-        except ImportError:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel('gemini-2.5-pro')
-            response = model.generate_content(prompt)
-            raw_text = response.text
-            
+        raw_text = gemini_generate(GEMINI_API_KEY, prompt, primary_model="gemini-2.5-pro")
         return {"prompt": prompt, "raw_response": raw_text}
     except Exception as e:
         log.error(f"Chyba při volání AI api v AI RAW: {e}")
@@ -163,21 +150,7 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
     log.info(f"Hledám přes AI: {query} v oblasti {location}")
 
     try:
-        try:
-            from google import genai
-            client = genai.Client(api_key=GEMINI_API_KEY)
-            response = client.models.generate_content(
-                model='gemini-2.5-pro',
-                contents=prompt,
-            )
-            raw_text = response.text
-        except ImportError:
-            import google.generativeai as genai
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel('gemini-2.5-pro')
-            response = model.generate_content(prompt)
-            raw_text = response.text
-        
+        raw_text = gemini_generate(GEMINI_API_KEY, prompt, primary_model="gemini-2.5-pro")
         log.info(f"Google Gemini odpovědělo úspěšně ({len(raw_text)} znaků).")
         
         # Clean markdown code block formatting if present
@@ -278,7 +251,7 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                 "status": status,
                 "keyword_found": query,
                 "is_street_view": False,
-                "tags": ["AI search", query, location]
+                "tags": ["AI SEARCH", query.upper(), location.upper()]
             })
             
         return results

@@ -19,6 +19,10 @@ def create_or_update_supplier(supplier: SupplierCreate, db: Session = Depends(ge
     Fetches additional details (Phone, Web, Email via scraping) if not present.
     """
     
+    # Normalize tags to uppercase to avoid case duplicates
+    if supplier.tags:
+        supplier.tags = [t.upper() for t in supplier.tags]
+
     # Enrich data if status is accepted/new and we have a google_id
     if supplier.status in ["accepted"] and supplier.google_id:
         enrich_data(supplier)
