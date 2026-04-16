@@ -60,8 +60,10 @@
                 <!-- AI Cards will be injected here -->
             </div>
             <div id="ai-search-loading" style="display: none; text-align: center; margin-top: 2rem;">
-                Nahrávám výsledky přes AI (může chvíli trvat)...
+                <div style="display:inline-block; width:20px; height:20px; border:3px solid var(--border); border-top-color:#58a6ff; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:8px;"></div>
+                <span id="ai-search-status" style="color:var(--text-secondary); font-size:0.9rem; vertical-align:middle;">Spouštím AI vyhledávání…</span>
             </div>
+            <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
         </div>
 
         <!-- Web Search View -->

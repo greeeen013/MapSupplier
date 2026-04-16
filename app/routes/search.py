@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Supplier
@@ -263,3 +264,132 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Search error: {str(e)}")
+
+
+@router.get("/ai_places_stream")
+def ai_search_places_stream(query: str, location: str = "Czech_Republic", db: Session = Depends(get_db)):
+    """SSE endpoint — streams each supplier as soon as it is ready."""
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="Gemini API Key not found")
+
+    prompt = get_ai_prompt(query, location)
+
+    def _event(payload: dict) -> str:
+        return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+    def generate():
+        yield _event({"type": "status", "message": "Čekám na odpověď AI…"})
+
+        try:
+            raw_text = gemini_generate(GEMINI_API_KEY, prompt, primary_model="gemini-2.5-pro")
+            log.info(f"AI stream: Gemini odpovědělo ({len(raw_text)} znaků).")
+
+            raw_text = raw_text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+
+            suppliers_data = json.loads(raw_text.strip())
+            total = len(suppliers_data)
+            yield _event({"type": "status", "message": f"AI nalezlo {total} firem, zpracovávám…"})
+
+            count = 0
+            for index, item in enumerate(suppliers_data):
+                company_name = item.get("name", "")
+                company_address = item.get("address", "")
+                n = f"[{index + 1}/{total}]"
+
+                yield _event({"type": "status", "message": f"{n} Hledám na Maps: {company_name}…"})
+
+                fallback_id = f"ai_{index}"
+                real_google_id = None
+                resolved_website = None
+                resolved_phone = None
+                resolved_rating = None
+                resolved_address = company_address
+
+                if GOOGLE_API_KEY and company_name:
+                    search_url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+                    gmap_params = {"query": f"{company_name} {company_address}", "key": GOOGLE_API_KEY}
+                    try:
+                        gmap_res = requests.get(search_url, params=gmap_params).json()
+                        if gmap_res.get("status") == "OK" and gmap_res.get("results"):
+                            first_result = gmap_res["results"][0]
+                            real_google_id = first_result.get("place_id")
+                            resolved_address = first_result.get("formatted_address", company_address)
+                            resolved_rating = first_result.get("rating")
+
+                            details_url = "https://maps.googleapis.com/maps/api/place/details/json"
+                            det_params = {"place_id": real_google_id, "fields": "website,formatted_phone_number", "key": GOOGLE_API_KEY}
+                            det_res = requests.get(details_url, params=det_params).json()
+                            if det_res.get("status") == "OK":
+                                resolved_website = det_res["result"].get("website")
+                                resolved_phone = det_res["result"].get("formatted_phone_number")
+                    except Exception as map_e:
+                        log.error(f"Maps API selhalo pro '{company_name}': {map_e}")
+
+                pseudo_id = real_google_id or f"ai_hash_{hash(company_name + resolved_address)}"
+
+                existing = db.query(Supplier).filter(Supplier.google_id == pseudo_id).first()
+                status = "new"
+                if existing:
+                    status = existing.status
+                    if status in ["rejected", "skipped_forever"]:
+                        continue
+
+                yield _event({"type": "status", "message": f"{n} Scrapuji emaily: {company_name}…"})
+
+                scraped_emails_data = {"emails": []}
+                if resolved_website:
+                    scraped_emails_data = advanced_scrape_emails(resolved_website)
+
+                scraped_emails = scraped_emails_data.get("emails", [])
+                ai_email = item.get("email")
+
+                final_emails_list = []
+                seen_email_addresses = set()
+                if scraped_emails:
+                    for em in scraped_emails:
+                        if em and isinstance(em, str):
+                            em_lower = em.strip().lower()
+                            if em_lower not in seen_email_addresses:
+                                final_emails_list.append({"address": em_lower, "verified": True})
+                                seen_email_addresses.add(em_lower)
+                else:
+                    if ai_email and isinstance(ai_email, str):
+                        final_emails_list.append({"address": ai_email.strip().lower(), "verified": False})
+
+                result = {
+                    "google_id": pseudo_id,
+                    "name": company_name or "Neznámý název",
+                    "emails_rich": final_emails_list,
+                    "address": resolved_address,
+                    "phone": resolved_phone,
+                    "website": resolved_website,
+                    "rating": resolved_rating,
+                    "images": [],
+                    "status": status,
+                    "keyword_found": query,
+                    "is_street_view": False,
+                    "country": location,
+                    "source": "AI SEARCH",
+                    "tags": ["AI SEARCH", query.upper(), location.upper()],
+                }
+                yield _event({"type": "supplier", "data": result})
+                count += 1
+
+            yield _event({"type": "done", "total": count})
+
+        except Exception as e:
+            log.error(f"AI stream chyba: {e}")
+            yield _event({"type": "error", "message": str(e)})
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
