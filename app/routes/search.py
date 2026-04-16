@@ -116,6 +116,7 @@ def get_ai_prompt(query: str, location: str) -> str:
     Vrať čistě JSON pole (array of objects), kde každý objekt má exaktně tyto klíče:
     - "name": Přesný název firmy
     - "address": Celá adresa firmy
+    - "website": Web firmy (URL včetně https://, null pokud neznáš)
     - "email": Firemní e-mail (odhadni nebo najdi, null pokud neznáš)
     Nevypisuj žádný jiný text, pouze surový JSON.
     """
@@ -209,8 +210,12 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                     log.error(f"Maps API selhalo pro '{company_name}': {map_e}")
                     print(f"Maps resolution failed for {company_name}: {map_e}")
 
+            if not resolved_website and item.get("website"):
+                resolved_website = item["website"]
+                log.info(f" -> Web z AI: {resolved_website}")
+
             pseudo_id = real_google_id or f"ai_hash_{hash(company_name + resolved_address)}"
-            
+
             # Check database for status
             existing = db.query(Supplier).filter(Supplier.google_id == pseudo_id).first()
             status = "new"
@@ -218,7 +223,7 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                 status = existing.status
                 if status in ["rejected", "skipped_forever"]:
                     continue
-                    
+
             # Deep Scrape Emails if website found
             scraped_emails_data = {"emails": []}
             if resolved_website:
@@ -335,6 +340,10 @@ def ai_search_places_stream(query: str, location: str = "Czech_Republic", db: Se
                                 resolved_phone = det_res["result"].get("formatted_phone_number")
                     except Exception as map_e:
                         log.error(f"Maps API selhalo pro '{company_name}': {map_e}")
+
+                if not resolved_website and item.get("website"):
+                    resolved_website = item["website"]
+                    log.info(f" -> Web z AI: {resolved_website}")
 
                 pseudo_id = real_google_id or f"ai_hash_{hash(company_name + resolved_address)}"
 
