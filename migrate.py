@@ -4,8 +4,11 @@ import os
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "suppliers.db")
 
 MIGRATIONS = [
-    ("country", "ALTER TABLE suppliers ADD COLUMN country VARCHAR;"),
-    ("source",  "ALTER TABLE suppliers ADD COLUMN source VARCHAR;"),
+    ("country",           "ALTER TABLE suppliers ADD COLUMN country VARCHAR;"),
+    ("source",            "ALTER TABLE suppliers ADD COLUMN source VARCHAR;"),
+    ("tag_location",      "ALTER TABLE suppliers ADD COLUMN tag_location VARCHAR;"),
+    ("tag_source_search", "ALTER TABLE suppliers ADD COLUMN tag_source_search VARCHAR;"),
+    ("tag_keyword",       "ALTER TABLE suppliers ADD COLUMN tag_keyword VARCHAR;"),
 ]
 
 conn = sqlite3.connect(DB_PATH)

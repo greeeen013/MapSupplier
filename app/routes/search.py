@@ -87,7 +87,9 @@ def search_places(query: str, location: str = "Czech_Republic", db: Session = De
             "is_street_view": is_street_view,
             "country": location,
             "source": "GOOGLE MAPS",
-            "tags": ["GOOGLE MAPS", query.upper(), location.upper()]
+            "tag_source_search": "GOOGLE MAPS",
+            "tag_keyword": query.upper(),
+            "tag_location": location.upper(),
         })
         
     return results
@@ -257,7 +259,9 @@ def ai_search_places(query: str, location: str = "Czech_Republic", db: Session =
                 "is_street_view": False,
                 "country": location,
                 "source": "AI SEARCH",
-                "tags": ["AI SEARCH", query.upper(), location.upper()]
+                "tag_source_search": "AI SEARCH",
+                "tag_keyword": query.upper(),
+                "tag_location": location.upper(),
             })
             
         return results

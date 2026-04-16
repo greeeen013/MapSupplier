@@ -1,5 +1,11 @@
 const API_BASE = '/api';
 
+function getSupplierTags(s) {
+    const specific = [s.tag_source_search, s.tag_keyword, s.tag_location].filter(Boolean);
+    if (specific.length) return specific;
+    return Array.isArray(s.tags) ? s.tags : [];
+}
+
 // State
 let currentSearchresults = [];
 let currentAISearchresults = [];
@@ -284,9 +290,9 @@ async function approveSupplier(googleId) {
     if (isAI) {
         const query = document.getElementById('ai-keywords').value;
         const location = document.getElementById('ai-location').value;
-        payload.tags = [query, location, 'AI SEARCH']
-            .filter(Boolean)
-            .map(t => t.toUpperCase());
+        payload.tag_source_search = 'AI SEARCH';
+        payload.tag_keyword = query.toUpperCase();
+        payload.tag_location = location.toUpperCase();
     }
 
     try {
@@ -371,9 +377,7 @@ function renderTagFilter() {
 
     const allTags = new Set();
     suppliers.forEach(s => {
-        if (Array.isArray(s.tags)) {
-            s.tags.forEach(t => allTags.add(t.toUpperCase().trim()));
-        }
+        getSupplierTags(s).forEach(t => allTags.add(t.toUpperCase().trim()));
     });
     window.allKnownTags = Array.from(allTags).filter(Boolean).sort();
 
@@ -445,21 +449,20 @@ function renderSupplierList() {
         if (filterPreset && filterPreset.body) {
             const requiredTags = filterPreset.body.split(',').map(tag => tag.trim().toUpperCase()).filter(Boolean);
             filtered = suppliers.filter(s => {
-                if (!Array.isArray(s.tags)) return false;
-                const suppTags = s.tags.map(t => t.toUpperCase());
+                const suppTags = getSupplierTags(s).map(t => t.toUpperCase());
                 return requiredTags.every(req => suppTags.includes(req));
             });
         }
     } else if (activeTagFilter) {
         filtered = suppliers.filter(s =>
-            Array.isArray(s.tags) &&
-            s.tags.some(t => t.toUpperCase() === activeTagFilter)
+            getSupplierTags(s).some(t => t.toUpperCase() === activeTagFilter)
         );
     }
     list.innerHTML = filtered.map(s => {
+        const tags = getSupplierTags(s);
         let tagsHtml = '';
-        if (Array.isArray(s.tags) && s.tags.length > 0) {
-            tagsHtml = s.tags.map(t => `<span>${t}</span>`).join('');
+        if (tags.length > 0) {
+            tagsHtml = tags.map(t => `<span>${t}</span>`).join('');
         } else {
             tagsHtml = `<span>${s.keyword || 'N/A'}</span>`;
         }

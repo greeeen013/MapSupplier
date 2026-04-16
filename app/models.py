@@ -19,9 +19,13 @@ class Supplier(Base):
     description = Column(Text, nullable=True)
     rejection_reason = Column(Text, nullable=True)
     
-    tags = Column(JSON, nullable=True) # E.g. ["AI search", keyword, country]
+    tags = Column(JSON, nullable=True)
     country = Column(String, nullable=True)
-    source = Column(String, nullable=True)  # How the supplier was found: 'AI SEARCH', 'GOOGLE MAPS', etc.
+    source = Column(String, nullable=True)
+
+    tag_location = Column(String, nullable=True)
+    tag_source_search = Column(String, nullable=True)
+    tag_keyword = Column(String, nullable=True)
 
     status = Column(String, default="pending") # pending, accepted, rejected, contacted, skipped_forever
     
