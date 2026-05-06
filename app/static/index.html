@@ -68,8 +68,41 @@
 
         <!-- Web Search View -->
         <div id="view-web-search" class="view">
-            <div style="text-align: center; margin-top: 5rem; color: var(--text-secondary);">
-                Funkce Web Search zatím není k dispozici.
+            <!-- Step 1: Source Selection -->
+            <div id="ws-sources" style="padding: 2rem;">
+                <p style="text-align:center; color:var(--text-secondary); font-size:0.85rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem;">Vyberte zdroj</p>
+                <div style="display:flex; gap:1.5rem; justify-content:center; flex-wrap:wrap;">
+                    <button onclick="selectWebSource('hikvision')" style="background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:1.5rem 2.5rem; cursor:pointer; color:var(--text-primary); font-size:1rem; font-weight:600; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='var(--border)'">Hikvision</button>
+                    <button disabled style="background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:1.5rem 2.5rem; cursor:not-allowed; opacity:0.4; color:var(--text-secondary); font-size:1rem;">Axis<br><small>brzy</small></button>
+                    <button onclick="selectWebSource('dahua')" style="background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:1.5rem 2.5rem; cursor:pointer; color:var(--text-primary); font-size:1rem; font-weight:600; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='var(--border)'">Dahua</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Country Selection -->
+            <div id="ws-countries" style="display:none; padding:1rem;">
+                <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+                    <button class="action-btn" style="background:#333;" onclick="wsBackToSources()">← Zpět</button>
+                    <span id="ws-countries-title" style="color:var(--text-secondary); font-size:0.9rem; font-weight:600;">Vyberte zemi</span>
+                </div>
+                <div id="ws-region-tabs" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.5rem;"></div>
+                <div id="ws-country-grid" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+            </div>
+
+            <!-- Step 3: Results -->
+            <div id="ws-results" style="display:none;">
+                <div class="search-bar" style="position:sticky; top:0; z-index:10; gap:0.8rem;">
+                    <button class="action-btn" style="background:#333; flex-shrink:0;" onclick="wsBackToCountries()">← Zpět</button>
+                    <span id="ws-results-title" style="color:var(--text-primary); font-weight:600; font-size:0.95rem; white-space:nowrap;"></span>
+                    <span id="ws-progress" style="color:var(--text-secondary); font-size:0.85rem; white-space:nowrap;"></span>
+                    <button class="primary" id="ws-confirm-all-btn" onclick="wsConfirmAll()" style="margin-left:auto; display:none; flex-shrink:0;">Potvrdit vše</button>
+                </div>
+                <div id="ws-loading-bar" style="display:none; padding:0.5rem 1rem; background:rgba(88,166,255,0.05); border-bottom:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="width:14px;height:14px;border:2px solid var(--border);border-top-color:#58a6ff;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+                        <span id="ws-status" style="color:var(--text-secondary); font-size:0.85rem;"></span>
+                    </div>
+                </div>
+                <div id="ws-results-grid" class="results-grid"></div>
             </div>
         </div>
 

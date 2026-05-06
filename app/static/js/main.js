@@ -9,6 +9,7 @@ function getSupplierTags(s) {
 // State
 let currentSearchresults = [];
 let currentAISearchresults = [];
+let currentWebSearchResults = [];
 let suppliers = [];
 let currentSupplier = null;
 let presets = [];
@@ -16,6 +17,15 @@ let activeTagFilter = null;
 let activeCustomFilterId = null;
 
 let currentAIEventSource = null;
+let currentWebEventSource = null;
+
+// Web Search state
+let wsRegions = null;
+let wsActiveRegion = null;
+let wsCountryTotal = 0;
+let wsCountryLoaded = 0;
+let wsActiveSource = null;
+let wsDahuaCountries = null;
 
 let currentSettingsTab = 'template';
 let currentEditingTags = [];
@@ -43,7 +53,7 @@ function switchView(viewName) {
     document.getElementById(`nav-${viewName}`).classList.add('active');
 
     if (viewName === 'email') {
-        loadSuppliers(); // Refresh list
+        loadSuppliers();
     }
 }
 
@@ -260,40 +270,41 @@ function editEmailDropdown(googleId) {
 async function approveSupplier(googleId) {
     let place = currentSearchresults.find(p => p.google_id === googleId);
     let isAI = false;
+    let isWeb = false;
     if (!place) {
         place = currentAISearchresults.find(p => p.google_id === googleId);
         isAI = !!place;
     }
+    if (!place) {
+        place = currentWebSearchResults.find(p => p.google_id === googleId);
+        isWeb = !!place;
+    }
     if (!place) return;
 
-    let selectedEmail = place.email; // Fallback
+    let selectedEmail = place.email;
     const inputEl = document.getElementById(`email-input-${googleId}`);
     const selectEl = document.getElementById(`email-select-${googleId}`);
-    
     if (inputEl) {
         selectedEmail = inputEl.value;
     } else if (selectEl) {
-        if (selectEl.tagName === 'SELECT') {
-            selectedEmail = selectEl.value;
-        } else {
-            selectedEmail = selectEl.getAttribute('data-val') || selectEl.innerText;
-        }
+        selectedEmail = selectEl.tagName === 'SELECT'
+            ? selectEl.value
+            : (selectEl.getAttribute('data-val') || selectEl.innerText);
     }
 
-    const payload = {
-        ...place,
-        email: selectedEmail,
-        keyword: isAI ? document.getElementById('ai-keywords').value : document.getElementById('keywords').value,
-        status: 'accepted'
-    };
+    let keyword;
+    if (isAI) keyword = document.getElementById('ai-keywords').value;
+    else if (isWeb) keyword = 'HIKVISION';
+    else keyword = document.getElementById('keywords').value;
+
+    const payload = { ...place, email: selectedEmail, keyword, status: 'accepted' };
 
     if (isAI) {
-        const query = document.getElementById('ai-keywords').value;
-        const location = document.getElementById('ai-location').value;
         payload.tag_source_search = 'AI SEARCH';
-        payload.tag_keyword = query.toUpperCase();
-        payload.tag_location = location.toUpperCase();
+        payload.tag_keyword = document.getElementById('ai-keywords').value.toUpperCase();
+        payload.tag_location = document.getElementById('ai-location').value.toUpperCase();
     }
+    // Web search: tags already set on the place object
 
     try {
         const res = await fetch(`${API_BASE}/suppliers/`, {
@@ -302,8 +313,12 @@ async function approveSupplier(googleId) {
             body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error('Failed');
-
         updateCardStatus(googleId, 'accepted');
+        // Sync status back to local array
+        if (isWeb) {
+            const idx = currentWebSearchResults.findIndex(p => p.google_id === googleId);
+            if (idx >= 0) currentWebSearchResults[idx].status = 'accepted';
+        }
     } catch (e) {
         console.error(e);
         alert('Chyba uložení');
@@ -313,29 +328,37 @@ async function approveSupplier(googleId) {
 async function rejectSupplier(googleId) {
     let place = currentSearchresults.find(p => p.google_id === googleId);
     let isAI = false;
+    let isWeb = false;
     if (!place) {
         place = currentAISearchresults.find(p => p.google_id === googleId);
         isAI = !!place;
     }
+    if (!place) {
+        place = currentWebSearchResults.find(p => p.google_id === googleId);
+        isWeb = !!place;
+    }
     if (!place) return;
 
-    const payload = {
-        ...place,
-        keyword: isAI ? document.getElementById('ai-keywords').value : document.getElementById('keywords').value,
-        status: 'rejected'
-    };
+    let keyword;
+    if (isAI) keyword = document.getElementById('ai-keywords').value;
+    else if (isWeb) keyword = 'HIKVISION';
+    else keyword = document.getElementById('keywords').value;
+
+    const payload = { ...place, keyword, status: 'rejected' };
 
     try {
-        const res = await fetch(`${API_BASE}/suppliers/`, {
+        await fetch(`${API_BASE}/suppliers/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
-        // Remove card or gray it out
         const card = document.getElementById(`card-${googleId}`);
         if (card) card.style.opacity = '0.5';
         updateCardStatus(googleId, 'rejected');
+        if (isWeb) {
+            const idx = currentWebSearchResults.findIndex(p => p.google_id === googleId);
+            if (idx >= 0) currentWebSearchResults[idx].status = 'rejected';
+        }
     } catch (e) {
         console.error(e);
     }
@@ -957,6 +980,200 @@ function addTagToEditor(t) {
     document.getElementById('tag-search-input').value = '';
     document.getElementById('tag-dropdown').style.display = 'none';
     document.getElementById('tag-search-input').focus();
+}
+
+// --- Web Search ---
+
+async function selectWebSource(sourceId) {
+    wsActiveSource = sourceId;
+    document.getElementById('ws-sources').style.display = 'none';
+    document.getElementById('ws-countries').style.display = 'block';
+
+    if (sourceId === 'dahua') {
+        document.getElementById('ws-countries-title').textContent = 'Dahua – Vyberte zemi';
+        document.getElementById('ws-region-tabs').style.display = 'none';
+        document.getElementById('ws-country-grid').innerHTML = '<span style="color:var(--text-secondary)">Načítám...</span>';
+        if (!wsDahuaCountries) {
+            try {
+                const res = await fetch(`${API_BASE}/websearch/dahua/countries`);
+                if (!res.ok) throw new Error(await res.text());
+                wsDahuaCountries = await res.json();
+            } catch (e) {
+                document.getElementById('ws-country-grid').innerHTML = `<span style="color:#f85149">Chyba: ${e.message}</span>`;
+                return;
+            }
+        }
+        document.getElementById('ws-country-grid').innerHTML = wsDahuaCountries.map(c =>
+            `<button class="tag-chip" onclick="selectWsCountry('${c.menu_id}', '${c.menu_name.replace(/'/g, "\\'")}')" style="padding:0.4rem 0.9rem;">${c.menu_name}</button>`
+        ).join('');
+        return;
+    }
+
+    // Hikvision
+    document.getElementById('ws-countries-title').textContent = 'Hikvision – Vyberte zemi';
+    document.getElementById('ws-region-tabs').style.display = 'flex';
+    if (!wsRegions) {
+        document.getElementById('ws-region-tabs').innerHTML = '<span style="color:var(--text-secondary)">Načítám...</span>';
+        document.getElementById('ws-country-grid').innerHTML = '';
+        try {
+            const res = await fetch(`${API_BASE}/websearch/hikvision/regions`);
+            if (!res.ok) throw new Error(await res.text());
+            wsRegions = await res.json();
+        } catch (e) {
+            document.getElementById('ws-region-tabs').innerHTML = `<span style="color:#f85149">Chyba: ${e.message}</span>`;
+            return;
+        }
+    }
+    renderWsRegions();
+}
+
+function wsBackToSources() {
+    document.getElementById('ws-countries').style.display = 'none';
+    document.getElementById('ws-sources').style.display = 'block';
+}
+
+function wsBackToCountries() {
+    if (currentWebEventSource) {
+        currentWebEventSource.close();
+        currentWebEventSource = null;
+    }
+    document.getElementById('ws-results').style.display = 'none';
+    document.getElementById('ws-countries').style.display = 'block';
+}
+
+function renderWsRegions() {
+    const regionNames = Object.keys(wsRegions || {});
+    if (!wsActiveRegion || !regionNames.includes(wsActiveRegion)) {
+        wsActiveRegion = regionNames[0];
+    }
+    document.getElementById('ws-region-tabs').innerHTML = regionNames.map(r =>
+        `<button class="tag-chip${wsActiveRegion === r ? ' active' : ''}" onclick="setWsRegion('${r.replace(/'/g, "\\'")}')">${r}</button>`
+    ).join('');
+    renderWsCountries();
+}
+
+function setWsRegion(region) {
+    wsActiveRegion = region;
+    renderWsRegions();
+}
+
+function renderWsCountries() {
+    const countries = (wsRegions || {})[wsActiveRegion] || [];
+    document.getElementById('ws-country-grid').innerHTML = countries.map(c =>
+        `<button class="tag-chip" onclick="selectWsCountry('${c.code}', '${c.name.replace(/'/g, "\\'")}')" style="padding:0.4rem 0.9rem;">${c.name}</button>`
+    ).join('');
+}
+
+function selectWsCountry(code, name) {
+    wsCountryTotal = 0;
+    wsCountryLoaded = 0;
+    currentWebSearchResults = [];
+
+    document.getElementById('ws-countries').style.display = 'none';
+    document.getElementById('ws-results').style.display = 'block';
+    const sourceName = wsActiveSource === 'dahua' ? 'Dahua' : 'Hikvision';
+    document.getElementById('ws-results-title').textContent = `${sourceName} – ${name}`;
+    document.getElementById('ws-progress').textContent = '';
+    document.getElementById('ws-results-grid').innerHTML = '';
+    document.getElementById('ws-confirm-all-btn').style.display = 'none';
+    document.getElementById('ws-loading-bar').style.display = 'block';
+    document.getElementById('ws-status').textContent = 'Spouštím...';
+
+    if (currentWebEventSource) currentWebEventSource.close();
+
+    const url = wsActiveSource === 'dahua'
+        ? `${API_BASE}/websearch/dahua/stream?country_id=${encodeURIComponent(code)}&country_name=${encodeURIComponent(name)}`
+        : `${API_BASE}/websearch/hikvision/stream?country_code=${encodeURIComponent(code)}&country_name=${encodeURIComponent(name)}`;
+    const es = new EventSource(url);
+    currentWebEventSource = es;
+
+    es.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'status') {
+                document.getElementById('ws-status').textContent = msg.message;
+            } else if (msg.type === 'total') {
+                wsCountryTotal = msg.total;
+                updateWsProgress();
+            } else if (msg.type === 'supplier') {
+                currentWebSearchResults.push(msg.data);
+                wsCountryLoaded++;
+                updateWsProgress();
+                appendWsCard(msg.data);
+                document.getElementById('ws-confirm-all-btn').style.display = 'block';
+            } else if (msg.type === 'done') {
+                es.close();
+                currentWebEventSource = null;
+                document.getElementById('ws-loading-bar').style.display = 'none';
+                updateWsProgress();
+                if (currentWebSearchResults.length === 0) {
+                    document.getElementById('ws-results-grid').innerHTML =
+                        '<p style="color:var(--text-secondary); padding:2rem; text-align:center;">Žádní dodavatelé nebyli nalezeni.</p>';
+                }
+            } else if (msg.type === 'error') {
+                es.close();
+                currentWebEventSource = null;
+                document.getElementById('ws-status').textContent = 'Chyba: ' + msg.message;
+            }
+        } catch (e) {
+            console.error('WS SSE parse error:', e);
+        }
+    };
+
+    es.onerror = () => {
+        if (es.readyState === EventSource.CLOSED) return;
+        es.close();
+        currentWebEventSource = null;
+        document.getElementById('ws-loading-bar').style.display = 'none';
+        document.getElementById('ws-status').textContent = 'Chyba připojení.';
+    };
+}
+
+function updateWsProgress() {
+    const el = document.getElementById('ws-progress');
+    if (!el) return;
+    if (wsCountryTotal > 0) {
+        el.textContent = `(${wsCountryLoaded} / ${wsCountryTotal})`;
+    } else if (wsCountryLoaded > 0) {
+        el.textContent = `(${wsCountryLoaded})`;
+    }
+}
+
+function appendWsCard(s) {
+    const grid = document.getElementById('ws-results-grid');
+    const div = document.createElement('div');
+    div.innerHTML = renderWsCard(s);
+    grid.appendChild(div.firstElementChild);
+}
+
+function renderWsCard(s) {
+    const imgHtml = s.images && s.images[0]
+        ? `<div class="card-img" style="background-image:url('${s.images[0]}'); background-size:contain; background-repeat:no-repeat; background-position:center; background-color:#0d1117;"></div>`
+        : '';
+    return `
+    <div class="card" id="card-${s.google_id}">
+        ${imgHtml}
+        <div class="card-content">
+            <h3>${s.name}</h3>
+            ${s.email ? `<p><strong>Email:</strong> ${s.email}</p>` : ''}
+            ${s.phone ? `<p><strong>Tel:</strong> ${s.phone}</p>` : ''}
+            ${s.website ? `<p><strong>Web:</strong> <a href="${s.website}" target="_blank" rel="noreferrer noopener">Odkaz</a></p>` : ''}
+            ${s.address ? `<p><strong>Adresa:</strong> ${s.address}</p>` : ''}
+            <span class="status-badge status-${s.status}">${s.status}</span>
+        </div>
+        <div class="card-actions">
+            <button class="btn-approve" onclick="approveSupplier('${s.google_id}')">Potvrdit</button>
+            <button class="btn-reject" onclick="rejectSupplier('${s.google_id}')">Zamítnout</button>
+        </div>
+    </div>`;
+}
+
+async function wsConfirmAll() {
+    const toConfirm = currentWebSearchResults.filter(s => s.status === 'new');
+    for (const s of toConfirm) {
+        await approveSupplier(s.google_id);
+        await new Promise(r => setTimeout(r, 50));
+    }
 }
 
 function insertPlaceholder(placeholder) {
